@@ -34,11 +34,10 @@ public class SocialMediaController {
         String messageID = messages + "/{message_id}";
         String accountID = "/accounts/{account_id}" + messages;
 
-        app.post(register, this::register);
-        /*
-         
-        app.post(login, null);
+        app.post(register, this::registerHandler);         
+        app.post(login, this::loginHandler);
 
+        /*
         app.post(messages, null);
         app.get(messages, null);
 
@@ -54,7 +53,7 @@ public class SocialMediaController {
     }
 
     // /register
-    private void register(Context ctx) {
+    private void registerHandler(Context ctx) {
         try {
             var om = new ObjectMapper();
             Account body = om.readValue(ctx.body(), Account.class);
@@ -62,7 +61,6 @@ public class SocialMediaController {
             
             if (inserted != null) {
                 ctx.json(om.writeValueAsString(inserted));
-                ctx.status(200);
             } else {
                 ctx.status(400);
             }
@@ -72,5 +70,21 @@ public class SocialMediaController {
         }
     }
 
-
+    // /login
+    private void loginHandler(Context ctx) {
+        try {
+            var om = new ObjectMapper();
+            Account body = om.readValue(ctx.body(), Account.class);
+            Account loggedIn = accountService.getAccountByCredentials(body.username, body.password);
+            
+            if (loggedIn != null) {
+                ctx.json(om.writeValueAsString(loggedIn));
+            } else {
+                ctx.status(401);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            ctx.status(401);
+        }
+    }
 }
