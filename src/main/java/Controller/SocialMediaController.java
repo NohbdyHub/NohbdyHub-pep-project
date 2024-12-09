@@ -2,9 +2,10 @@ package Controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import DAO.AccountDAO;
 import Model.Account;
+import Model.Message;
 import Service.AccountService;
+import Service.MessageService;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 
@@ -15,9 +16,11 @@ import io.javalin.http.Context;
  */
 public class SocialMediaController {
     private AccountService accountService;
+    private MessageService messageService;
 
     public SocialMediaController() {
         accountService = new AccountService();
+        messageService = new MessageService();
     }
 
     /**
@@ -37,22 +40,18 @@ public class SocialMediaController {
         app.post(register, this::registerHandler);         
         app.post(login, this::loginHandler);
 
-        /*
-        app.post(messages, null);
-        app.get(messages, null);
-
-        app.get(messageID, null);
-        app.delete(messageID, null);
-        app.patch(messageID, null);
-
-        app.get(accountID, null);
-        */
-
+        app.post(messages, this::addMessageHandler);
+        app.get(messages, this::getMessagesHandler);
+        
+        app.get(messageID, this::getMessageByIDHandler);
+        app.delete(messageID, this::deleteMessageByIDHandler);
+        app.patch(messageID, this::patchMessageByIDHandler);
+        app.get(accountID, this::getMessageByUserHandler);
 
         return app;
     }
 
-    // /register
+    // POST /register
     private void registerHandler(Context ctx) {
         try {
             var om = new ObjectMapper();
@@ -70,7 +69,7 @@ public class SocialMediaController {
         }
     }
 
-    // /login
+    // POST /login
     private void loginHandler(Context ctx) {
         try {
             var om = new ObjectMapper();
@@ -85,6 +84,90 @@ public class SocialMediaController {
         } catch (Exception e) {
             e.printStackTrace();
             ctx.status(401);
+        }
+    }
+
+    // POST /messages
+    private void addMessageHandler(Context ctx) {
+        try {
+            var om = new ObjectMapper();
+            Message body = om.readValue(ctx.body(), Message.class);
+            Message sent = messageService.insertMessage(body);
+            
+            if (sent != null) {
+                ctx.json(om.writeValueAsString(sent));
+            } else {
+                ctx.status(400);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            ctx.status(400);
+        }
+    }
+
+    // GET /messages
+    private void getMessagesHandler(Context ctx) {
+        try {
+            var om = new ObjectMapper();
+            var messages = messageService.getAllMessages();
+            ctx.json(om.writeValueAsString(messages));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    // GET /messages/{message_id}
+    private void getMessageByIDHandler(Context ctx) {
+        try {
+            var om = new ObjectMapper();
+            var message = messageService.getMessageByID(Integer.parseInt(ctx.pathParam("message_id")));
+            if (message != null) {
+                ctx.json(om.writeValueAsString(message));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    // DELETE /messages/{message_id}
+    private void deleteMessageByIDHandler(Context ctx) {
+        try {
+            var om = new ObjectMapper();
+            var message = messageService.deleteMessageByID(Integer.parseInt(ctx.pathParam("message_id")));
+            if (message != null) {
+                ctx.json(om.writeValueAsString(message));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    // PATCH /messages/{message_id}
+    private void patchMessageByIDHandler(Context ctx) {
+        try {
+            var om = new ObjectMapper();
+            Message body = om.readValue(ctx.body(),Message.class);
+            Message updated = messageService.patchMessageByID(Integer.parseInt(ctx.pathParam("message_id")), body.message_text);
+
+            if (updated != null) {
+                ctx.json(om.writeValueAsString(updated));
+            } else {
+                ctx.status(400);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            ctx.status(400);
+        }
+    }
+
+    // GET /accounts/{account_id}/messages
+    private void getMessageByUserHandler(Context ctx) {
+        try {
+            var om = new ObjectMapper();
+            var messages = messageService.getAllMessagesByUserID(Integer.parseInt(ctx.pathParam("account_id")));
+            ctx.json(om.writeValueAsString(messages));
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }

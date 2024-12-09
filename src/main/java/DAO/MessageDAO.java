@@ -3,6 +3,7 @@ package DAO;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,7 +16,7 @@ public class MessageDAO {
         Connection connection = ConnectionUtil.getConnection();
         try {
             String sql = "INSERT INTO message (posted_by, message_text, time_posted_epoch) VALUES (?, ?, ?)";
-            PreparedStatement statement = connection.prepareStatement(sql);
+            PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 
             statement.setInt(1, message.posted_by);
             statement.setString(2, message.message_text);
@@ -31,6 +32,26 @@ public class MessageDAO {
         }
 
         return null;
+    }
+
+    // #3
+    public boolean userCanSendMessage(int posted_by) {
+        Connection connection = ConnectionUtil.getConnection();
+
+        try {
+            String sql = "SELECT COUNT(*) FROM account WHERE account_id = ?";
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setInt(1, posted_by);
+
+            var rs = statement.executeQuery();
+            var exists = !rs.next();    
+            return exists;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return false;
     }
 
     // #4
@@ -104,7 +125,7 @@ public class MessageDAO {
         Connection connection = ConnectionUtil.getConnection();
 
         try {
-            String sql = "UPDATE message SET message_body = ? WHERE message_id = ?";
+            String sql = "UPDATE message SET message_text = ? WHERE message_id = ?";
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, message_text);
             statement.setInt(2, message_id);
